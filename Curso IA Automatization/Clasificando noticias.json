@@ -1,0 +1,226 @@
+{
+  "name": "Clasificando noticias",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1FNj6qTfJm9pubAhYciB3H6CL0GG59XS3IaV-3VNibEY",
+          "mode": "list",
+          "cachedResultName": "Noticias a Clasificar",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FNj6qTfJm9pubAhYciB3H6CL0GG59XS3IaV-3VNibEY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FNj6qTfJm9pubAhYciB3H6CL0GG59XS3IaV-3VNibEY/edit#gid=0"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        -912,
+        -64
+      ],
+      "id": "406d588b-ca4f-4d01-8858-dbca7d31e283",
+      "name": "Google Sheets Trigger",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "s3lj1F0x0Dkko8iH",
+          "name": "Google Sheets Trigger account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.URL }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -400,
+        -64
+      ],
+      "id": "839c88d2-d3f8-481b-952c-15c87e989dfe",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "article_content",
+              "cssSelector": "article p"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        -160,
+        -64
+      ],
+      "id": "1ec648a2-a31a-425a-8764-fe289b66dcb9",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Eres un clasificador de noticias corporativas. Debes responder con UNA SOLA palabra: URGENTE, ECONOMIA, DEPORTES, POLITICA o SPAM. No añadas explicaciones ni puntuación.\n\nClasifica esta noticia en UNA de esas categorías. Responde ÚNICAMENTE con una palabra de la lista, sin puntos, sin comillas, sin nada más.\n\nTitular: {{ $('Google Sheets Trigger').item.json.Titular }}\n\nNoticia: {{ $('HTML').item.json.article_content }}"
+            }
+          ]
+        },
+        "simplify": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        96,
+        -64
+      ],
+      "id": "3ac37085-35e2-47bb-bcaf-e9cf8f40ef1c",
+      "name": "Message a model",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "QotC9CxBk2uWUJib",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -640,
+        -64
+      ],
+      "id": "efe90646-8a6b-496e-bc89-93e0c0965f9a",
+      "name": "Wait",
+      "webhookId": "98c7e43d-0db8-4260-b386-231cff6d8602"
+    },
+    {
+      "parameters": {
+        "chatId": "8310145297",
+        "text": "='🚨 CLASIFICACIÓN: {{ $json.candidates[0].content.parts[0].text }} \n\nTITULAR :{{ $('Google Sheets Trigger').item.json.Titular }}\n\nSi queres leer la noticia completa te dejo el link: {{ $('Google Sheets Trigger').item.json.URL }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        448,
+        -64
+      ],
+      "id": "c5227086-5c76-431f-b0b0-0b37eb0f103c",
+      "name": "Send a text message",
+      "webhookId": "21430979-2229-4732-af2b-34343c2f2ea6",
+      "credentials": {
+        "telegramApi": {
+          "id": "IOjzRFTdTNBso6X1",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d1f50b24-6752-4806-93eb-73c630578ed7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "051e5aaf6f9bdc7e896bff2bf0f4573c0f7b256ac306da081cd7285baaf9012f"
+  },
+  "id": "hoqW3U9X8TlPsrMs",
+  "tags": []
+}
